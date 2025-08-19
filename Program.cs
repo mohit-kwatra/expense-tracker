@@ -13,15 +13,21 @@ builder.Services.AddControllers()
 		x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DevConnection")));
+
+var allowedOrigins = builder.Configuration["ALLOWED_ORIGINS"]?.Split(";");
 builder.Services.AddCors(options =>
 {
-	options.AddPolicy("AllowLocalhost5173", policy =>
-	{
-		policy.WithOrigins("http://localhost:5173")
-			.AllowAnyHeader()
-			.AllowAnyMethod();
-	});
+    options.AddPolicy("DynamicPolicy", policy =>
+    {
+        if (allowedOrigins != null && allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+    });
 });
+
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 builder.WebHost.UseUrls($"http://*:{port}");
@@ -46,7 +52,7 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-app.UseCors("AllowLocalhost5173");
+app.UseCors("DynamicPolicy");
 
 app.UseAuthorization();
 
